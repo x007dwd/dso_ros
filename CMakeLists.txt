@@ -8,11 +8,11 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
 )
 
-set(DSO_PATH "/home/bobin/Documents/code/UAV/SLAM/dso")
+set(DSO_PATH "/home/ubuntu/Documents/code/dso")
 message("\n\n---- LOOKING FOR DSO at\n\"${DSO_PATH}\"")
 
 
-find_package(Pangolin 0.2 REQUIRED)
+#find_package(Pangolin 0.2 REQUIRED)
 # message("\n\n---- FOUND Pangolin Headers at\n\"${Pangolin_INCLUDE_DIRS}\"")
 # message("---- FOUND Pangolin Libs at\n\"${Pangolin_LIBRARIES}\"")
 
@@ -42,7 +42,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/src
   ${DSO_PATH}/src
   ${DSO_PATH}/thirdparty/Sophus
-  ${Pangolin_INCLUDE_DIRS}
+ # ${Pangolin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
 )
@@ -52,6 +52,6 @@ add_executable(dso_live src/main.cpp)
 
 target_link_libraries(dso_live
     ${DSO_LIBRARY}
-    ${Pangolin_LIBRARIES}
+    #${Pangolin_LIBRARIES}
     ${OpenCV_LIBS}
     ${catkin_LIBRARIES})

@@ -34,7 +34,7 @@
 #include "util/settings.h"
 #include "FullSystem/FullSystem.h"
 #include "util/Undistort.h"
-#include "IOWrapper/Pangolin/PangolinDSOViewer.h"
+//#include "IOWrapper/Pangolin/PangolinDSOViewer.h"
 
 
 #include <ros/ros.h>
@@ -131,12 +131,12 @@ void vidCb(const sensor_msgs::ImageConstPtr img)
 
 	if(setting_fullResetRequested)
 	{
-		IOWrap::Output3DWrapper* wrap = fullSystem->outputWrapper;
+		//IOWrap::Output3DWrapper* wrap = fullSystem->outputWrapper;
 		delete fullSystem;
-		if(wrap != 0) wrap->reset();
+		//if(wrap != 0) wrap->reset();
 		fullSystem = new FullSystem();
 		fullSystem->linearizeOperation=false;
-		fullSystem->outputWrapper = wrap;
+		//fullSystem->outputWrapper = wrap;
 	    if(undistorter->photometricUndist != 0)
 	    	fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
 		setting_fullResetRequested=false;
@@ -191,10 +191,10 @@ int main( int argc, char** argv )
 
 	fullSystem = new FullSystem();
 	fullSystem->linearizeOperation=false;
-    fullSystem->outputWrapper = new IOWrap::PangolinDSOViewer(
+/*    fullSystem->outputWrapper = new IOWrap::PangolinDSOViewer(
     		 (int)undistorter->getSize()[0],
     		 (int)undistorter->getSize()[1]);
-
+*/
     if(undistorter->photometricUndist != 0)
     	fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
 
