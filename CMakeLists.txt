@@ -8,17 +8,17 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
 )
 
-set(DSO_PATH $ENV{DSO_PATH})
+set(DSO_PATH "/home/bobin/Documents/code/UAV/SLAM/dso")
 message("\n\n---- LOOKING FOR DSO at\n\"${DSO_PATH}\"")
 
 
 find_package(Pangolin 0.2 REQUIRED)
-message("\n\n---- FOUND Pangolin Headers at\n\"${Pangolin_INCLUDE_DIRS}\"")
-message("---- FOUND Pangolin Libs at\n\"${Pangolin_LIBRARIES}\"")
+# message("\n\n---- FOUND Pangolin Headers at\n\"${Pangolin_INCLUDE_DIRS}\"")
+# message("---- FOUND Pangolin Libs at\n\"${Pangolin_LIBRARIES}\"")
 
 find_package(OpenCV REQUIRED)
-message("\n\n---- FOUND OpenCV Headers at\n\"${OpenCV_INCLUDE_DIRS}\"")
-message("---- FOUND OpenCV Libs at\n\"${OpenCV_LIBS}\"")
+# message("\n\n---- FOUND OpenCV Headers at\n\"${OpenCV_INCLUDE_DIRS}\"")
+# message("---- FOUND OpenCV Libs at\n\"${OpenCV_LIBS}\"")
 
 find_package(Eigen3 REQUIRED)
 find_package(Boost COMPONENTS system thread)
@@ -31,6 +31,11 @@ find_library(DSO_LIBRARY dso ${DSO_PATH}/build/lib)
 
 set(CMAKE_CXX_FLAGS
    "${SSE_FLAGS} -O2 -g -std=c++0x -fno-omit-frame-pointer"
+)
+
+catkin_package(
+ CATKIN_DEPENDS roscpp geometry_msgs sensor_msgs  cv_bridge
+#  DEPENDS system_lib
 )
 
 include_directories(
@@ -50,4 +55,3 @@ target_link_libraries(dso_live
     ${Pangolin_LIBRARIES}
     ${OpenCV_LIBS}
     ${catkin_LIBRARIES})
-

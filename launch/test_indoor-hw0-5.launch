@@ -1,0 +1,13 @@
+<launch>
+
+  <node name="publishImage" pkg="uav_pose" type="publishCamera.py" output="screen" args="/media/bobin/DATA1/SLAM/data/indoor/huawei/VID_20161225_200057.mp4">
+    <param name="time_delay" type="double" value="0.0" />
+    <param name="FPS" type="double" value="30.0" />
+    <param name="factor" type="int" value="2" />
+  </node>
+<node pkg="dso_ros" type="dso_live" name="dso" output="screen" args="calib=$(find dso_ros)/param/huawei-camera0-5.txt">
+	<remap from="image" to="uav_pose/image"/>
+	<!--<param name="mode" type="int" value="0" />-->
+	<!--<param name="calib" type="string" value="$(find dso_ros)/camera.txt" />-->
+	</node>
+</launch>

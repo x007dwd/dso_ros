@@ -1,0 +1,9 @@
+<launch>
+
+<node pkg="uvc_camera" type="uvc_camera_node" name="video" />
+<node pkg="dso_ros" type="dso_live" name="dso" output="screen" args="calib=$(find dso_ros)/camera.txt">
+	<remap from="image" to="image_raw"/>
+	<!--<param name="mode" type="int" value="0" />-->
+	<!--<param name="calib" type="string" value="$(find dso_ros)/camera.txt" />-->
+	</node>
+</launch>

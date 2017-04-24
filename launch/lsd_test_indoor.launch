@@ -1,0 +1,14 @@
+<launch>
+    <node name="publishImage" pkg="uav_pose" type="publishCamera.py" output="screen" args="/media/bobin/DATA1/SLAM/data/indoor/huawei/VID_20161225_193419.mp4">
+    <param name="time_delay" type="double" value="5.0" />
+    <param name="FPS" type="double" value="30.0" />
+  </node>
+    <node pkg="lsd_slam_core" type="live" name="lsdslam" output="screen">
+        <param name="image" value="/uav_pose/image" type="str" />
+        <param name="camera_info" value="/uav_pose/camera_info" type="str" />
+    </node>
+    <node pkg="lsd_slam_viewer" type="viewer" name="viewer" />
+    <node pkg="uav_pose" type="camera_info_pub.py" name="camera_info">
+      <rosparam command="load" file="/media/bobin/DATA1/SLAM/data/indoor/huawei-parameters/ost.yaml" />
+    </node>
+</launch>
