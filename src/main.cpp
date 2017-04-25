@@ -50,7 +50,10 @@ std::string vignetteFile = "";
 std::string gammaFile = "";
 
 using namespace dso;
+void CamInfoCbk()
+{
 
+}
 void parseArgument(char* arg)
 {
 	int option;
@@ -149,14 +152,32 @@ void vidCb(const sensor_msgs::ImageConstPtr img)
 	delete undistImg;
 
 }
-
-
+void cameraInfoCbk(const sensor_msgs::CameraInfoPtr &msg) 
+{
+	if(cameraInfoRdyFlag == false)
+	{
+		cameraInfoRdyFlag = true;
+		set
+  double *matPtr;
+  matPtr = (double *)distortMat.data;
+  for (int i = 0; i < 5; i++) {
+    *matPtr++ = msg->D[i];
+  }
+  matPtr = (double *)CamInMat.data;
+  for (int i = 0; i < 9; i++) {
+    *matPtr++ = msg->K[i];
+  }
+  matPtr = (double *)CamMat.data;
+  for (int i = 0; i < 12; i++) {
+    *matPtr++ = msg->P[i];
+}
 
 
 
 int main( int argc, char** argv )
 {
 	ros::init(argc, argv, "dso_live");
+	ros::NodeHandle nh;
 
 
 	setlocale(LC_ALL, "");
@@ -179,10 +200,10 @@ int main( int argc, char** argv )
 	setting_affineOptModeB = 0;
 
 
+	camera_infoSub = nh.subscribe("/svo/camera_info", 10,cameraInfoCbk);
+	undistorter = Undistort::getUndistorterForFile(calib, gammaFile, vignetteFile);
 
-    undistorter = Undistort::getUndistorterForFile(calib, gammaFile, vignetteFile);
-
-    setGlobalCalib(
+    	setGlobalCalib(
             (int)undistorter->getSize()[0],
             (int)undistorter->getSize()[1],
             undistorter->getK().cast<float>());
@@ -195,16 +216,15 @@ int main( int argc, char** argv )
     		 (int)undistorter->getSize()[0],
     		 (int)undistorter->getSize()[1]);
 */
-    if(undistorter->photometricUndist != 0)
+    	if(undistorter->photometricUndist != 0)
     	fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
 
-    ros::NodeHandle nh;
-    ros::Subscriber imgSub = nh.subscribe("image", 1, &vidCb);
+   	ros::Subscriber imgSub = nh.subscribe("image", 1, &vidCb);
 
-    ros::spin();
+    	ros::spin();
 
-    delete undistorter;
-    delete fullSystem;
+    	delete undistorter;
+    	delete fullSystem;
 
 	return 0;
 }
