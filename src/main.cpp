@@ -31,8 +31,8 @@
 #include "util/Undistort.h"
 #include "util/settings.h"
 //#include "IOWrapper/Pangolin/PangolinDSOViewer.h"
-
 #include "cv_bridge/cv_bridge.h"
+#include "rosWrapper.h"
 #include <geometry_msgs/PoseStamped.h>
 #include <ros/ros.h>
 #include <sensor_msgs/CameraInfo.h>
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   setting_affineOptModeB = 0;
 
   ros::Subscriber camera_infoSub =
-      nh.subscribe("/svo/camera_info", 10, cameraInfoCbk);
+      nh.subscribe("/dso/camera_info", 10, cameraInfoCbk);
   // undistorter = Undistort::getUndistorterForFile(calib, gammaFile,
   // vignetteFile);
 
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
                    (int)undistorter->getSize()[1]);
   */
 
-  ros::Subscriber imgSub = nh.subscribe("image", 1, &vidCb);
+  ros::Subscriber imgSub = nh.subscribe("/dso/image", 1, &vidCb);
 
   ros::spin();
 
