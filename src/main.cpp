@@ -1,6 +1,6 @@
 /**
 * This file is part of DSO.
-* 
+*
 * Copyright 2016 Technical University of Munich and Intel.
 * Developed by Jakob Engel <engelj at in dot tum dot de>,
 * for more information see <http://vision.in.tum.de/dso>.
@@ -21,211 +21,169 @@
 * along with DSO. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-
-
-
 #include <locale.h>
 #include <signal.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
-#include "util/settings.h"
 #include "FullSystem/FullSystem.h"
 #include "util/Undistort.h"
+#include "util/settings.h"
 //#include "IOWrapper/Pangolin/PangolinDSOViewer.h"
 
-
-#include <ros/ros.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <geometry_msgs/PoseStamped.h>
 #include "cv_bridge/cv_bridge.h"
-
+#include <geometry_msgs/PoseStamped.h>
+#include <ros/ros.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
 
 std::string calib = "";
 std::string vignetteFile = "";
 std::string gammaFile = "";
-
+bool cameraInfoRdyFlag = false;
 using namespace dso;
-void CamInfoCbk()
-{
+void CamInfoCbk() {}
+void parseArgument(char *arg) {
+  int option;
+  char buf[1000];
 
-}
-void parseArgument(char* arg)
-{
-	int option;
-	char buf[1000];
+  if (1 == sscanf(arg, "option=%d", &option)) {
+    benchmarkSpecialOption = option;
+    printf("OPTION %d!!\n", benchmarkSpecialOption);
+    return;
+  }
 
+  if (1 == sscanf(arg, "nolog=%d", &option)) {
+    if (option == 1) {
+      setting_logStuff = false;
+      printf("DISABLE LOGGING!\n");
+    }
+    return;
+  }
 
-	if(1==sscanf(arg,"option=%d",&option))
-	{
-		benchmarkSpecialOption = option;
-		printf("OPTION %d!!\n",benchmarkSpecialOption);
-		return;
-	}
+  if (1 == sscanf(arg, "nogui=%d", &option)) {
+    if (option == 1) {
+      disableAllDisplay = true;
+      printf("NO GUI!\n");
+    }
+    return;
+  }
+  if (1 == sscanf(arg, "nomt=%d", &option)) {
+    if (option == 1) {
+      multiThreading = false;
+      printf("NO MultiThreading!\n");
+    }
+    return;
+  }
+  if (1 == sscanf(arg, "calib=%s", buf)) {
+    calib = buf;
+    printf("loading calibration from %s!\n", calib.c_str());
+    return;
+  }
+  if (1 == sscanf(arg, "vignette=%s", buf)) {
+    vignetteFile = buf;
+    printf("loading vignette from %s!\n", vignetteFile.c_str());
+    return;
+  }
 
-	if(1==sscanf(arg,"nolog=%d",&option))
-	{
-		if(option==1)
-		{
-			setting_logStuff = false;
-			printf("DISABLE LOGGING!\n");
-		}
-		return;
-	}
+  if (1 == sscanf(arg, "gamma=%s", buf)) {
+    gammaFile = buf;
+    printf("loading gammaCalib from %s!\n", gammaFile.c_str());
+    return;
+  }
 
-	if(1==sscanf(arg,"nogui=%d",&option))
-	{
-		if(option==1)
-		{
-			disableAllDisplay = true;
-			printf("NO GUI!\n");
-		}
-		return;
-	}
-	if(1==sscanf(arg,"nomt=%d",&option))
-	{
-		if(option==1)
-		{
-			multiThreading = false;
-			printf("NO MultiThreading!\n");
-		}
-		return;
-	}
-	if(1==sscanf(arg,"calib=%s",buf))
-	{
-		calib = buf;
-		printf("loading calibration from %s!\n", calib.c_str());
-		return;
-	}
-	if(1==sscanf(arg,"vignette=%s",buf))
-	{
-		vignetteFile = buf;
-		printf("loading vignette from %s!\n", vignetteFile.c_str());
-		return;
-	}
-
-	if(1==sscanf(arg,"gamma=%s",buf))
-	{
-		gammaFile = buf;
-		printf("loading gammaCalib from %s!\n", gammaFile.c_str());
-		return;
-	}
-
-	printf("could not parse argument \"%s\"!!\n", arg);
+  printf("could not parse argument \"%s\"!!\n", arg);
 }
 
-
-
-
-FullSystem* fullSystem = 0;
-Undistort* undistorter = 0;
+FullSystem *fullSystem = 0;
+Undistort *undistorter = 0;
 int frameID = 0;
 
-void vidCb(const sensor_msgs::ImageConstPtr img)
-{
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
-	assert(cv_ptr->image.type() == CV_8U);
-	assert(cv_ptr->image.channels() == 1);
+void vidCb(const sensor_msgs::ImageConstPtr img) {
+  cv_bridge::CvImagePtr cv_ptr =
+      cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+  assert(cv_ptr->image.type() == CV_8U);
+  assert(cv_ptr->image.channels() == 1);
 
-
-	if(setting_fullResetRequested)
-	{
-		//IOWrap::Output3DWrapper* wrap = fullSystem->outputWrapper;
-		delete fullSystem;
-		//if(wrap != 0) wrap->reset();
-		fullSystem = new FullSystem();
-		fullSystem->linearizeOperation=false;
-		//fullSystem->outputWrapper = wrap;
-	    if(undistorter->photometricUndist != 0)
-	    	fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
-		setting_fullResetRequested=false;
-	}
-
-	MinimalImageB minImg((int)cv_ptr->image.cols, (int)cv_ptr->image.rows,(unsigned char*)cv_ptr->image.data);
-	ImageAndExposure* undistImg = undistorter->undistort<unsigned char>(&minImg, 1,0, 1.0f);
-	fullSystem->addActiveFrame(undistImg, frameID);
-	frameID++;
-	delete undistImg;
-
-}
-void cameraInfoCbk(const sensor_msgs::CameraInfoPtr &msg) 
-{
-	if(cameraInfoRdyFlag == false)
-	{
-		cameraInfoRdyFlag = true;
-		set
-  double *matPtr;
-  matPtr = (double *)distortMat.data;
-  for (int i = 0; i < 5; i++) {
-    *matPtr++ = msg->D[i];
+  if (setting_fullResetRequested) {
+    // IOWrap::Output3DWrapper* wrap = fullSystem->outputWrapper;
+    delete fullSystem;
+    // if(wrap != 0) wrap->reset();
+    fullSystem = new FullSystem();
+    fullSystem->linearizeOperation = false;
+    // fullSystem->outputWrapper = wrap;
+    if (undistorter->photometricUndist != 0)
+      fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
+    setting_fullResetRequested = false;
   }
-  matPtr = (double *)CamInMat.data;
-  for (int i = 0; i < 9; i++) {
-    *matPtr++ = msg->K[i];
+
+  MinimalImageB minImg((int)cv_ptr->image.cols, (int)cv_ptr->image.rows,
+                       (unsigned char *)cv_ptr->image.data);
+  ImageAndExposure *undistImg =
+      undistorter->undistort<unsigned char>(&minImg, 1, 0, 1.0f);
+  fullSystem->addActiveFrame(undistImg, frameID);
+  frameID++;
+  delete undistImg;
+}
+void cameraInfoCbk(const sensor_msgs::CameraInfoPtr &msg) {
+  if (cameraInfoRdyFlag == false) {
+    cameraInfoRdyFlag = true;
+    Eigen::Matrix3f KMat;
+    for (size_t i = 0; i < 3; i++) {
+      for (size_t j = 0; j < 3; j++) {
+        KMat(i, j) = msg->K[3 * i + j];
+      }
+    }
+    setGlobalCalib(msg->width, msg->height, KMat);
   }
-  matPtr = (double *)CamMat.data;
-  for (int i = 0; i < 12; i++) {
-    *matPtr++ = msg->P[i];
 }
 
+int main(int argc, char **argv) {
+  ros::init(argc, argv, "dso_live");
+  ros::NodeHandle nh;
 
+  setlocale(LC_ALL, "");
+  for (int i = 1; i < argc; i++)
+    parseArgument(argv[i]);
 
-int main( int argc, char** argv )
-{
-	ros::init(argc, argv, "dso_live");
-	ros::NodeHandle nh;
+  setting_desiredImmatureDensity = 1000;
+  setting_desiredPointDensity = 1200;
+  setting_minFrames = 5;
+  setting_maxFrames = 7;
+  setting_maxOptIterations = 4;
+  setting_minOptIterations = 1;
+  setting_logStuff = false;
+  setting_kfGlobalWeight = 1.3;
 
+  printf("MODE WITH CALIBRATION, but without exposure times!\n");
+  setting_photometricCalibration = 0;
+  setting_affineOptModeA = 0;
+  setting_affineOptModeB = 0;
 
-	setlocale(LC_ALL, "");
-	for(int i=1; i<argc;i++) parseArgument(argv[i]);
+  ros::Subscriber camera_infoSub =
+      nh.subscribe("/svo/camera_info", 10, cameraInfoCbk);
+  // undistorter = Undistort::getUndistorterForFile(calib, gammaFile,
+  // vignetteFile);
 
+  // setGlobalCalib((int)undistorter->getSize()[0],
+  //                (int)undistorter->getSize()[1],
+  //                undistorter->getK().cast<float>());
 
-	setting_desiredImmatureDensity = 1000;
-	setting_desiredPointDensity = 1200;
-	setting_minFrames = 5;
-	setting_maxFrames = 7;
-	setting_maxOptIterations=4;
-	setting_minOptIterations=1;
-	setting_logStuff = false;
-	setting_kfGlobalWeight = 1.3;
+  fullSystem = new FullSystem();
+  fullSystem->linearizeOperation = false;
+  /*    fullSystem->outputWrapper = new IOWrap::PangolinDSOViewer(
+                   (int)undistorter->getSize()[0],
+                   (int)undistorter->getSize()[1]);
+  */
 
+  ros::Subscriber imgSub = nh.subscribe("image", 1, &vidCb);
 
-	printf("MODE WITH CALIBRATION, but without exposure times!\n");
-	setting_photometricCalibration = 2;
-	setting_affineOptModeA = 0;
-	setting_affineOptModeB = 0;
+  ros::spin();
 
+  delete undistorter;
+  delete fullSystem;
 
-	camera_infoSub = nh.subscribe("/svo/camera_info", 10,cameraInfoCbk);
-	undistorter = Undistort::getUndistorterForFile(calib, gammaFile, vignetteFile);
-
-    	setGlobalCalib(
-            (int)undistorter->getSize()[0],
-            (int)undistorter->getSize()[1],
-            undistorter->getK().cast<float>());
-
-
-
-	fullSystem = new FullSystem();
-	fullSystem->linearizeOperation=false;
-/*    fullSystem->outputWrapper = new IOWrap::PangolinDSOViewer(
-    		 (int)undistorter->getSize()[0],
-    		 (int)undistorter->getSize()[1]);
-*/
-    	if(undistorter->photometricUndist != 0)
-    	fullSystem->setGammaFunction(undistorter->photometricUndist->getG());
-
-   	ros::Subscriber imgSub = nh.subscribe("image", 1, &vidCb);
-
-    	ros::spin();
-
-    	delete undistorter;
-    	delete fullSystem;
-
-	return 0;
+  return 0;
 }
-
